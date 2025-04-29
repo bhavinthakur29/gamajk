@@ -215,34 +215,36 @@ export default function AdminStudents() {
                 {branches.map(branch => (
                     <div key={branch} className="mb-5">
                         <h5 className="fw-bold mb-3">{branch} Branch</h5>
-                        <Table striped bordered hover size="sm" responsive>
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Belt</th>
-                                    <th>Batch</th>
-                                    <th>Contact</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {studentsByBranch[branch] && studentsByBranch[branch].length > 0 ? (
-                                    studentsByBranch[branch].map(student => (
-                                        <tr key={student.id}>
-                                            <td>{student.name}</td>
-                                            <td>{student.email}</td>
-                                            <td>{student.belt}</td>
-                                            <td>{student.batch}</td>
-                                            <td>{student.contactNumber}</td>
-                                        </tr>
-                                    ))
-                                ) : (
+                        <div className="table-responsive">
+                            <Table striped bordered hover size="sm">
+                                <thead>
                                     <tr>
-                                        <td colSpan={5} className="text-center text-muted">No students in this branch.</td>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Belt</th>
+                                        <th>Batch</th>
+                                        <th>Contact</th>
                                     </tr>
-                                )}
-                            </tbody>
-                        </Table>
+                                </thead>
+                                <tbody>
+                                    {studentsByBranch[branch] && studentsByBranch[branch].length > 0 ? (
+                                        studentsByBranch[branch].map(student => (
+                                            <tr key={student.id}>
+                                                <td>{student.name}</td>
+                                                <td>{student.email}</td>
+                                                <td>{student.belt}</td>
+                                                <td>{student.batch}</td>
+                                                <td>{student.contactNumber}</td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={5} className="text-center text-muted">No students in this branch.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </Table>
+                        </div>
                     </div>
                 ))}
             </div>

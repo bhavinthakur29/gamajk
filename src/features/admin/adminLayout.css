@@ -1,0 +1,37 @@
+/* Custom Styles for responsiveness */
+@media (max-width: 768px) {
+
+    /* Stack form inputs vertically on small screens */
+    .form-group {
+        width: 100%;
+        margin-bottom: 15px;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Adjust the buttons to fit small screens */
+    .btn {
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    /* Make the table contents more compact on small screens */
+    .table th,
+    .table td {
+        padding: 8px;
+        font-size: 14px;
+    }
+
+    /* Align form controls properly for small screens */
+    .form-control {
+        width: 100%;
+    }
+
+    /* For smaller screen sizes, make the card padding smaller */
+    .card-body {
+        padding: 10px;
+    }
+}
