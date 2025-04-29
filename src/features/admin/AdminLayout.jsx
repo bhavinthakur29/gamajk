@@ -2,7 +2,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { FaHome, FaUsers, FaUserTie, FaSitemap, FaBars, FaClipboardList, FaUserCircle, FaSignOutAlt } from 'react-icons/fa';
 import { Container, Nav, Offcanvas, Button, Modal } from 'react-bootstrap';
 import { useState } from 'react';
-import '../../styles/admin-layout.css';
+// import '../../styles/admin-layout.css';
 
 export default function AdminLayout() {
     const location = useLocation();
