@@ -1,6 +1,12 @@
 [build]
-  command = "npm run build:netlify"
+  command = "npm install && npm run build:netlify"
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "20" 
+  NODE_VERSION = "20"
+  NPM_FLAGS = "--no-audit --no-fund"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200 
