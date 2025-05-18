@@ -1,18 +1,16 @@
 {
   "name": "gama-web",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "dev": "bunx --bun vite",
+    "build": "bunx --bun vite build",
+    "build:netlify": "vite build",
+    "lint": "bunx eslint .",
+    "preview": "bunx --bun vite preview"
   },
   "dependencies": {
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.0",
-    "@mui/material": "^7.1.0",
     "bootstrap": "^5.3.5",
     "dotenv": "^16.5.0",
     "firebase": "^11.6.1",
@@ -31,6 +29,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
+    "rollup": "^4.10.0",
     "vite": "^6.3.1"
   }
 }
