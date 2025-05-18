@@ -1,0 +1,221 @@
+.login-container {
+    max-width: 450px;
+    margin: 2rem auto;
+    border-radius: 12px;
+    background-color: white;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.login-header {
+    background: linear-gradient(135deg, #0062cc, #0069d9);
+    color: white;
+    padding: 1.5rem;
+    text-align: center;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+.login-header h1 {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 600;
+}
+
+.login-body {
+    padding: 2rem;
+}
+
+.login-tabs {
+    display: flex;
+    margin-bottom: 1.5rem;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #dee2e6;
+}
+
+.login-tab {
+    flex: 1;
+    text-align: center;
+    padding: 0.75rem;
+    cursor: pointer;
+    background-color: #f8f9fa;
+    border: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.login-tab.active {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.form-group {
+    position: relative;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.form-group input:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.input-icon {
+    position: absolute;
+    top: 50%;
+    left: 0.75rem;
+    transform: translateY(-50%);
+    color: #6c757d;
+}
+
+.login-btn {
+    padding: 0.75rem;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    margin-top: 0.5rem;
+}
+
+.login-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.forgot-btn {
+    background: none;
+    border: none;
+    color: #0d6efd;
+    padding: 0.5rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.forgot-btn:hover {
+    color: #0a58ca;
+    text-decoration: underline;
+}
+
+.reset-options {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.reset-option {
+    flex: 1;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.reset-option:hover {
+    border-color: #0d6efd;
+    background-color: #f8f9fa;
+}
+
+.reset-option.active {
+    border-color: #0d6efd;
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+.reset-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: #0d6efd;
+}
+
+.verify-input {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.otp-input {
+    width: 3rem !important;
+    height: 3rem;
+    text-align: center;
+    font-size: 1.25rem !important;
+    padding: 0 !important;
+}
+
+/* SMS Toast Notification */
+.sms-toast {
+    min-width: 300px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: slideIn 0.3s ease-out;
+}
+
+.sms-toast .toast-header {
+    background-color: #f0f7ff;
+    border-bottom: 1px solid #d1e7ff;
+    padding: 0.75rem 1rem;
+}
+
+.sms-toast .toast-body {
+    background-color: #f8f9fa;
+    padding: 1rem;
+}
+
+.sms-toast .toast-body strong {
+    font-size: 0.95rem;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+    .login-container {
+        max-width: 100%;
+        margin: 0;
+        border-radius: 0;
+        box-shadow: none;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .login-header {
+        border-radius: 0;
+    }
+
+    .login-body {
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    .sms-toast {
+        min-width: calc(100% - 2rem);
+        margin: 0 1rem 1rem;
+    }
+}

@@ -14,7 +14,7 @@
 
     /* Adjust the buttons to fit small screens */
     .btn {
-        width: 100%;
+        width: auto !important;
         margin-top: 10px;
     }
 
@@ -34,4 +34,213 @@
     .card-body {
         padding: 10px;
     }
+
+    /* Reduced content padding for mobile */
+    .content-container {
+        padding: 0.75rem;
+    }
+}
+
+/* Admin Layout Container */
+.admin-layout {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+    position: relative;
+}
+
+/* Sidebar Styling */
+.desktop-sidebar {
+    display: none;
+    flex-direction: column;
+    width: 250px;
+    background-color: #343a40;
+    color: white;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1000;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Mobile Sidebar Styling */
+.mobile-sidebar {
+    width: 260px !important;
+    background-color: #343a40 !important;
+    color: white !important;
+}
+
+/* Sidebar Header */
+.sidebar-header {
+    padding: 1.5rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logo-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.sidebar-logo {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-title {
+    margin: 0;
+    font-weight: 600;
+    color: white;
+}
+
+/* Sidebar Navigation */
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 0.75rem;
+}
+
+.sidebar-nav-item {
+    margin-bottom: 8px;
+}
+
+.sidebar-nav-link {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    border-radius: 8px;
+    color: #ced4da;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.sidebar-nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.sidebar-nav-link.active {
+    background-color: #007bff;
+    color: white;
+    font-weight: 500;
+}
+
+.sidebar-icon {
+    margin-right: 12px;
+    font-size: 18px;
+    min-width: 20px;
+    text-align: center;
+}
+
+.sidebar-label {
+    font-size: 14px;
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+    margin-top: auto;
+    padding: 1.5rem 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logout-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+/* Main Content Area */
+.main-content {
+    flex: 1;
+    background-color: #f8f9fa;
+    min-height: 100vh;
+    width: 100%;
+}
+
+.content-container {
+    padding: 1.5rem;
+}
+
+/* Mobile Header */
+.mobile-header {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background-color: white;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.menu-toggle-button {
+    color: #343a40;
+    padding: 0;
+    margin-right: 15px;
+}
+
+.mobile-title {
+    margin: 0;
+    font-weight: 500;
+}
+
+/* Media Queries for Responsive Design */
+@media (min-width: 768px) {
+    .desktop-sidebar {
+        display: flex;
+    }
+
+    .mobile-header {
+        display: none;
+    }
+
+    .main-content {
+        margin-left: 250px;
+        width: calc(100% - 250px);
+    }
+
+    /* Fix for button width on desktop */
+    .btn {
+        width: auto;
+    }
+}
+
+/* Form button fixes */
+.form-card .btn {
+    width: auto;
+    min-width: 120px;
+}
+
+.action-btn {
+    width: auto !important;
+    min-width: 100px;
+}
+
+/* Custom Styling for Dashboard Cards */
+.action-card {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.action-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+/* Fix for Offcanvas Close Button */
+.btn-close {
+    opacity: 1 !important;
+    filter: brightness(0) invert(1);
+}
+
+/* Remove duplicate top navigation on mobile */
+.gama-top-nav {
+    display: none;
 }

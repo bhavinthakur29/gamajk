@@ -1,33 +1,59 @@
 import js from '@eslint/js'
+import { FlatCompat } from '@eslint/eslintrc'
+import reactPlugin from 'eslint-plugin-react'
+import reactHooksPlugin from 'eslint-plugin-react-hooks'
+import reactRefreshPlugin from 'eslint-plugin-react-refresh'
 import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
+
+const compat = new FlatCompat()
 
 export default [
-  { ignores: ['dist'] },
+  js.configs.recommended,
+  ...compat.config({
+    extends: ['eslint:recommended'],
+  }),
   {
-    files: ['**/*.{js,jsx}'],
+    files: ['**/*.{js,jsx,ts,tsx}'],
     languageOptions: {
-      ecmaVersion: 2020,
-      globals: globals.browser,
-      parserOptions: {
-        ecmaVersion: 'latest',
-        ecmaFeatures: { jsx: true },
-        sourceType: 'module',
+      globals: {
+        ...globals.browser,
       },
     },
     plugins: {
-      'react-hooks': reactHooks,
-      'react-refresh': reactRefresh,
+      react: reactPlugin,
+      'react-hooks': reactHooksPlugin,
+      'react-refresh': reactRefreshPlugin,
     },
     rules: {
-      ...js.configs.recommended.rules,
-      ...reactHooks.configs.recommended.rules,
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
-      ],
+      // React specific rules
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      'react/prop-types': 'warn',
+      'react/jsx-key': 'error',
+      
+      // Best practices
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'no-alert': 'warn',
+      'no-debugger': 'warn',
+      'no-duplicate-imports': 'error',
+      'no-var': 'error',
+      'prefer-const': 'error',
+      'prefer-arrow-callback': 'warn',
+      'arrow-body-style': ['warn', 'as-needed'],
+      
+      // Complexity
+      'max-depth': ['warn', 4],
+      'max-lines-per-function': ['warn', { max: 200, skipBlankLines: true, skipComments: true }],
+      'max-nested-callbacks': ['warn', 3],
+      'complexity': ['warn', 15],
+      
+      // Style
+      'semi': ['error', 'always'],
+      'quotes': ['warn', 'single', { avoidEscape: true }],
+      'indent': ['warn', 2, { SwitchCase: 1 }],
+      'comma-dangle': ['warn', 'always-multiline'],
     },
   },
 ]

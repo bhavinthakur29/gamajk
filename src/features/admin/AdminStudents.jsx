@@ -224,6 +224,7 @@ export default function AdminStudents() {
                                         <th>Belt</th>
                                         <th>Batch</th>
                                         <th>Contact</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -235,6 +236,16 @@ export default function AdminStudents() {
                                                 <td>{student.belt}</td>
                                                 <td>{student.batch}</td>
                                                 <td>{student.contactNumber}</td>
+                                                <td>
+                                                    <Button
+                                                        as="a"
+                                                        href={`/admin/student/${student.id}`}
+                                                        variant="outline-primary"
+                                                        size="sm"
+                                                    >
+                                                        View Details
+                                                    </Button>
+                                                </td>
                                             </tr>
                                         ))
                                     ) : (

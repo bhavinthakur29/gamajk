@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { collection, getDocs, addDoc, query, where, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
-import { Card, Table, Button, Tabs, Tab, Badge, Spinner, Toast, ToastContainer } from 'react-bootstrap';
-import { FaCheck, FaTimes, FaSave } from 'react-icons/fa';
+import { Card, Table, Button, Tabs, Tab, Spinner, Toast, ToastContainer } from 'react-bootstrap';
+import { FaCheck, FaTimes, FaSave, FaSync } from 'react-icons/fa';
 import NoData from '../../components/common/NoData';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -15,36 +15,193 @@ export default function Attendance() {
     const [toastMsg, setToastMsg] = useState('');
     const [saving, setSaving] = useState(false);
     const { userRole, userBranch } = useAuth();
+    const [branchConfig, setBranchConfig] = useState(null);
+    const [availableBatches, setAvailableBatches] = useState([1, 2]);
+    const [refreshing, setRefreshing] = useState(false);
 
+    // Fetch branch configuration
     useEffect(() => {
-        const fetchStudents = async () => {
+        const fetchBranchConfig = async () => {
             try {
-                setLoading(true);
-                const querySnapshot = await getDocs(collection(db, 'students'));
-                let fetchedStudents = querySnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                // Filter by branch for instructors
-                if (userRole === 'instructor') {
-                    fetchedStudents = fetchedStudents.filter(s => s.branch === userBranch);
-                }
-                setStudents(fetchedStudents);
+                if (!userBranch) return;
 
-                // Load saved attendance from localStorage
-                const today = new Date().toISOString().split('T')[0];
-                const savedAttendance = localStorage.getItem(`attendance_${today}`);
-                if (savedAttendance) {
-                    setAttendance(JSON.parse(savedAttendance));
+                // Get branch configuration from the database
+                const branchQuery = query(
+                    collection(db, 'branches'),
+                    where('name', '==', userBranch)
+                );
+
+                const branchSnapshot = await getDocs(branchQuery);
+                if (!branchSnapshot.empty) {
+                    const branchData = branchSnapshot.docs[0].data();
+                    setBranchConfig(branchData);
+
+                    // Get number of batches
+                    const numBatches = parseInt(branchData.numBatches) || 2;
+                    const batchArray = Array.from({ length: numBatches }, (_, i) => i + 1);
+                    setAvailableBatches(batchArray);
+
+                    // Set active tab to first batch if current batch doesn't exist
+                    const currentBatch = parseInt(activeTab.replace('batch', ''));
+                    if (currentBatch > numBatches) {
+                        setActiveTab('batch1');
+                    }
                 }
             } catch (error) {
-                console.error('Error fetching students:', error);
-            } finally {
-                setLoading(false);
+                console.error('Error fetching branch config:', error);
             }
         };
 
+        fetchBranchConfig();
+    }, [userBranch]);
+
+    const fetchStudents = async (forceRefresh = false) => {
+        try {
+            if (forceRefresh) setRefreshing(true);
+            else setLoading(true);
+
+            // Clear any old localStorage data that might be causing issues
+            const today = new Date().toISOString().split('T')[0];
+            if (forceRefresh) localStorage.removeItem(`attendance_${today}`);
+
+            // For instructors, directly query only students from their branch
+            let fetchedStudents = [];
+            if (userRole === 'instructor') {
+                const q = query(
+                    collection(db, 'students'),
+                    where('branch', '==', userBranch)
+                );
+                const querySnapshot = await getDocs(q);
+                fetchedStudents = querySnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+            } else {
+                // For admin, get all students
+                const querySnapshot = await getDocs(collection(db, 'students'));
+                fetchedStudents = querySnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+            }
+
+            setStudents(fetchedStudents);
+
+            // Load saved attendance from localStorage
+            const savedAttendance = localStorage.getItem(`attendance_${today}`);
+            if (savedAttendance) {
+                setAttendance(JSON.parse(savedAttendance));
+            }
+
+            if (forceRefresh) {
+                setToastMsg('Data refreshed successfully!');
+                setShowToast(true);
+            }
+        } catch (error) {
+            console.error('Error fetching students:', error);
+            if (forceRefresh) {
+                setToastMsg('Error refreshing data.');
+                setShowToast(true);
+            }
+        } finally {
+            if (forceRefresh) setRefreshing(false);
+            else setLoading(false);
+        }
+    };
+
+    const handleRefresh = () => {
+        fetchStudents(true);
+    };
+
+    useEffect(() => {
         fetchStudents();
+
+        // Check if there's pending data from yesterday that needs to be submitted
+        const checkForPendingData = async () => {
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+                // Check if there's data from yesterday in localStorage
+                const pendingData = localStorage.getItem(`attendance_${yesterdayStr}`);
+
+                if (pendingData) {
+                    const pendingAttendance = JSON.parse(pendingData);
+
+                    // If there's data, save it to the database
+                    if (Object.keys(pendingAttendance).length > 0) {
+                        // Temporarily save the data to use in the save function
+                        const tempAttendance = { ...attendance };
+                        setAttendance(pendingAttendance);
+
+                        // Save the pending data
+                        await handleSaveAttendance(yesterdayStr);
+
+                        // Restore current attendance
+                        setAttendance(tempAttendance);
+
+                        // Remove yesterday's data from localStorage
+                        localStorage.removeItem(`attendance_${yesterdayStr}`);
+
+                        console.log('Pending attendance data from yesterday submitted successfully');
+                    }
+                }
+            } catch (error) {
+                console.error('Error processing pending attendance data:', error);
+            }
+        };
+
+        // Setup a timer to check if we need to save data at midnight
+        const setupMidnightCheck = () => {
+            // Calculate time until next midnight
+            const now = new Date();
+            const midnight = new Date();
+            midnight.setHours(24, 0, 0, 0);
+            const msUntilMidnight = midnight - now;
+
+            console.log(`Scheduling midnight attendance push in ${msUntilMidnight}ms`);
+
+            // Set a timeout for midnight
+            const midnightTimeout = setTimeout(() => {
+                const today = new Date().toISOString().split('T')[0];
+                const attendanceData = localStorage.getItem(`attendance_${today}`);
+
+                if (attendanceData) {
+                    // Save attendance data automatically at midnight
+                    const savedAttendance = JSON.parse(attendanceData);
+
+                    if (Object.keys(savedAttendance).length > 0) {
+                        // Set the attendance data and save it
+                        setAttendance(savedAttendance);
+                        handleSaveAttendance(today).then(() => {
+                            // Clear the localStorage data after saving
+                            localStorage.removeItem(`attendance_${today}`);
+                            // Reset the attendance state
+                            setAttendance({});
+                            console.log('Midnight attendance data submitted and reset');
+                        });
+                    }
+                }
+
+                // Setup the next midnight check
+                setupMidnightCheck();
+            }, msUntilMidnight);
+
+            return midnightTimeout;
+        };
+
+        // Check for pending data immediately
+        checkForPendingData();
+
+        // Setup midnight check
+        const midnightTimeout = setupMidnightCheck();
+
+        return () => {
+            // Clear timeout when component unmounts
+            clearTimeout(midnightTimeout);
+        };
     }, [userRole, userBranch]);
 
     const handleAttendanceChange = (studentId, present) => {
@@ -55,51 +212,141 @@ export default function Attendance() {
         localStorage.setItem(`attendance_${today}`, JSON.stringify(newAttendance));
     };
 
-    const handleSaveAttendance = async () => {
+    const handleSaveAttendance = async (dateStr = null) => {
         setSaving(true);
         try {
-            const today = new Date().toISOString().split('T')[0];
+            const today = dateStr || new Date().toISOString().split('T')[0];
+            const month = today.substring(0, 7); // YYYY-MM format
             const attendanceObj = attendance;
-            const studentsArr = Object.entries(attendanceObj).map(([studentId, present]) => ({
-                studentId,
-                present
-            }));
+
+            // Gather additional student info for better record keeping
+            const studentsArr = Object.entries(attendanceObj).map(([studentId, present]) => {
+                const student = students.find(s => s.id === studentId);
+
+                // Skip if no student found with this ID
+                if (!student) {
+                    console.warn(`No student found with ID: ${studentId}. Skipping attendance entry.`);
+                    return null;
+                }
+
+                return {
+                    studentId,
+                    present,
+                    name: student.name || '',
+                    studentName: student.name || '', // Add this for compatibility
+                    belt: student.belt || '',
+                    studentBelt: student.belt || '', // Add this for compatibility
+                    branch: student.branch || userBranch,
+                    batch: student.batch || parseInt(activeTab.replace('batch', ''))
+                };
+            }).filter(entry => entry !== null); // Remove any null entries
+
             if (studentsArr.length === 0) {
                 setToastMsg('No attendance to save.');
                 setShowToast(true);
                 setSaving(false);
                 return;
             }
-            // Upsert logic: check if record exists for today
-            const q = query(collection(db, 'attendance_records'), where('date', '==', today));
+
+            // Check for existing records for today's date AND this branch AND this batch
+            const q = query(
+                collection(db, 'attendance_records'),
+                where('date', '==', today),
+                where('branch', '==', userBranch),
+                where('batch', '==', parseInt(activeTab.replace('batch', '')))
+            );
+
             const querySnapshot = await getDocs(q);
+
             if (!querySnapshot.empty) {
-                // Update existing
+                // Update existing record for this branch and batch
                 const recordRef = doc(db, 'attendance_records', querySnapshot.docs[0].id);
+
+                // Get existing record to check for student updates
+                const existingRecord = querySnapshot.docs[0].data();
+
+                // Create a new array for updated students to avoid duplicates
+                const updatedStudentMap = {};
+
+                // First add existing students to the map (to avoid duplicates)
+                if (existingRecord.students && Array.isArray(existingRecord.students)) {
+                    existingRecord.students.forEach(student => {
+                        if (student.studentId) {
+                            updatedStudentMap[student.studentId] = student;
+                        }
+                    });
+                }
+
+                // Now update or add the current attendance
+                studentsArr.forEach(newStudent => {
+                    if (newStudent.studentId) {
+                        updatedStudentMap[newStudent.studentId] = newStudent;
+                    }
+                });
+
+                // Convert the map back to an array
+                const updatedStudents = Object.values(updatedStudentMap);
+
                 await updateDoc(recordRef, {
-                    students: studentsArr,
+                    students: updatedStudents,
+                    month,
                     timestamp: serverTimestamp()
                 });
             } else {
-                // Create new
+                // Create new record for this branch and batch
                 await addDoc(collection(db, 'attendance_records'), {
                     date: today,
+                    month,
+                    batch: parseInt(activeTab.replace('batch', '')),
+                    branch: userBranch,
+                    batchName: `Batch ${parseInt(activeTab.replace('batch', ''))}`,
                     students: studentsArr,
                     timestamp: serverTimestamp()
                 });
             }
+
             setToastMsg('Attendance saved successfully!');
+            console.log('Attendance saved successfully for batch:', activeTab);
+            return true; // Return success status for promise chaining
         } catch (error) {
+            console.error('Error saving attendance:', error);
             setToastMsg('Error saving attendance.');
+            return false; // Return failure status for promise chaining
         } finally {
             setShowToast(true);
             setSaving(false);
         }
     };
 
-    const getStudentStatusColor = (studentId) => {
-        if (attendance[studentId] === undefined) return 'table-light';
-        return attendance[studentId] ? 'table-success' : 'table-danger';
+    // Get student status badge label and color based on belt
+    const getBeltStyle = (belt) => {
+        if (!belt) return { text: "Unknown", bg: "#6c757d", color: "#fff" };
+
+        // Map belt colors to badge styles
+        const beltMap = {
+            "White": { text: "White", bg: "#f8f9fa", color: "#212529" },
+            "Yellow": { text: "Yellow", bg: "#ffc107", color: "#212529" },
+            "Yellow Stripe": { text: "Yellow Stripe", bg: "#ffc107", color: "#212529" },
+            "Orange": { text: "Orange", bg: "#fd7e14", color: "#212529" },
+            "Green": { text: "Green", bg: "#198754", color: "#fff" },
+            "Blue": { text: "Blue", bg: "#0d6efd", color: "#fff" },
+            "Purple": { text: "Purple", bg: "#6f42c1", color: "#fff" },
+            "Brown": { text: "Brown", bg: "#795548", color: "#fff" },
+            "Red": { text: "Red", bg: "#dc3545", color: "#fff" },
+            "Black": { text: "Black", bg: "#212529", color: "#fff" },
+            "Black 1": { text: "Black 1", bg: "#212529", color: "#fff" },
+            "Black 2": { text: "Black 2", bg: "#212529", color: "#fff" },
+            "Black 3": { text: "Black 3", bg: "#212529", color: "#fff" }
+        };
+
+        return beltMap[belt] || { text: belt, bg: "#6c757d", color: "#fff" };
+    };
+
+    // Get row class based on attendance status
+    const getRowClass = (studentId) => {
+        if (attendance[studentId] === true) return 'present-row';
+        if (attendance[studentId] === false) return 'absent-row';
+        return 'unmarked-row';
     };
 
     const filteredStudents = students.filter(student => student.batch === parseInt(activeTab.replace('batch', '')));
@@ -134,18 +381,29 @@ export default function Attendance() {
     return (
         <div className="min-vh-100 bg-light">
             <div className="container-fluid px-3 py-4 position-relative">
-                <h1 className="mb-4">Take Attendance</h1>
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                    <h4><strong>Mark Attendance</strong></h4>
+                    <Button
+                        variant="outline-primary"
+                        onClick={handleRefresh}
+                        disabled={refreshing || loading}
+                        className="d-flex align-items-center"
+                    >
+                        <FaSync className={`me-2 ${refreshing ? 'fa-spin' : ''}`} />
+                        {refreshing ? 'Refreshing...' : 'Refresh Data'}
+                    </Button>
+                </div>
                 <Tabs
                     activeKey={activeTab}
                     onSelect={(k) => setActiveTab(k)}
                     className="mb-4"
                 >
-                    <Tab eventKey="batch1" title="Batch 1" />
-                    <Tab eventKey="batch2" title="Batch 2" />
-                    <Tab eventKey="batch3" title="Batch 3" />
+                    {availableBatches.map(batchNum => (
+                        <Tab key={`batch${batchNum}`} eventKey={`batch${batchNum}`} title={`Batch ${batchNum}`} />
+                    ))}
                 </Tabs>
                 <div className="table-responsive">
-                    <Table striped bordered hover>
+                    <Table bordered hover className="attendance-table">
                         <thead className="table-light">
                             <tr>
                                 <th style={{ width: '60%' }}>Name</th>
@@ -154,42 +412,51 @@ export default function Attendance() {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredStudents.map(student => (
-                                <tr
-                                    key={student.id}
-                                    className={getStudentStatusColor(student.id)}
-                                >
-                                    <td>{student.name}</td>
-                                    <td>
-                                        <Badge bg="secondary">
-                                            {student.belt}
-                                        </Badge>
-                                    </td>
-                                    <td>
-                                        <div className="d-flex gap-2">
-                                            <Button
-                                                variant={attendance[student.id] ? 'success' : 'outline-success'}
-                                                size="sm"
-                                                onClick={() => handleAttendanceChange(student.id, true)}
+                            {filteredStudents.map(student => {
+                                const beltStyle = getBeltStyle(student.belt);
+                                const isPresent = attendance[student.id] === true;
+                                const isAbsent = attendance[student.id] === false;
+
+                                return (
+                                    <tr key={student.id} className={getRowClass(student.id)}>
+                                        <td>{student.name}</td>
+                                        <td className="p-0">
+                                            <div
+                                                className="belt-label"
+                                                style={{
+                                                    backgroundColor: beltStyle.bg,
+                                                    color: beltStyle.color,
+                                                }}
                                             >
-                                                <FaCheck />
-                                            </Button>
-                                            <Button
-                                                variant={attendance[student.id] === false ? 'danger' : 'outline-danger'}
-                                                size="sm"
-                                                onClick={() => handleAttendanceChange(student.id, false)}
-                                            >
-                                                <FaTimes />
-                                            </Button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                                {beltStyle.text}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div className="d-flex justify-content-center">
+                                                <button
+                                                    type="button"
+                                                    className={`att-mark-btn ${isPresent ? 'present' : 'inactive'}`}
+                                                    onClick={() => handleAttendanceChange(student.id, true)}
+                                                >
+                                                    <FaCheck size={16} />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={`att-mark-btn ${isAbsent ? 'absent' : 'inactive'}`}
+                                                    onClick={() => handleAttendanceChange(student.id, false)}
+                                                >
+                                                    <FaTimes size={16} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </Table>
                 </div>
                 <div className="d-flex justify-content-end mb-3">
-                    <Button variant="primary" onClick={handleSaveAttendance} disabled={saving}>
+                    <Button variant="primary" onClick={() => handleSaveAttendance()} disabled={saving}>
                         <FaSave className="me-2" />
                         {saving ? 'Saving...' : 'Save Attendance'}
                     </Button>

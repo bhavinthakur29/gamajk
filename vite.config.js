@@ -4,4 +4,16 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  css: {
+    postcss: false,
+    // Disable PostCSS processing
+    preprocessorOptions: {
+      scss: false
+    }
+  },
+  server: {
+    hmr: {
+      overlay: false
+    }
+  }
 })

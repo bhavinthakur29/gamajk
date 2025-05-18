@@ -4,10 +4,9 @@ import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { sendEmailVerification, updateEmail } from 'firebase/auth';
 import { Button } from 'react-bootstrap';
-
-const BELT_OPTIONS = [
-    'White', 'Yellow', 'Yellow Stripe', 'Green', 'Green Stripe', 'Blue', 'Blue Stripe', 'Red', 'Red Stripe', 'Black Stripe', 'Black 1', 'Black 2', 'Black 3'
-];
+import { useAuth } from '../../contexts/AuthContext';
+import { BELT_OPTIONS } from '../../utils/constants';
+import { userService } from '../../services/firebaseService';
 
 export default function Profile() {
     const [isEditing, setIsEditing] = useState(false);
@@ -18,7 +17,8 @@ export default function Profile() {
         address: '',
         contactNumber: '',
         dateOfBirth: '',
-        emailVerified: true
+        emailVerified: true,
+        role: ''
     });
     const [loading, setLoading] = useState(true);
     const [emailEdit, setEmailEdit] = useState('');
@@ -29,6 +29,8 @@ export default function Profile() {
     const [pendingEmail, setPendingEmail] = useState(localStorage.getItem('pendingEmail') || '');
     const navigate = useNavigate();
 
+    const { userRole } = useAuth();
+
     useEffect(() => {
         const fetchUserData = async () => {
             try {
@@ -38,19 +40,23 @@ export default function Profile() {
                     return;
                 }
                 await user.reload();
-                const userDoc = await getDoc(doc(db, 'users', user.uid));
-                if (userDoc.exists()) {
+
+                // Use the userService instead of direct Firestore calls
+                const userData = await userService.getUserProfile(user.uid, true);
+
+                if (userData) {
                     setUserData({
-                        fullName: userDoc.data().fullName || '',
-                        email: userDoc.data().email || user.email,
-                        belt: userDoc.data().belt || '',
-                        address: userDoc.data().address || '',
-                        contactNumber: userDoc.data().contactNumber || '',
-                        dateOfBirth: userDoc.data().dateOfBirth || '',
-                        emailVerified: userDoc.data().emailVerified !== false
+                        fullName: userData.fullName || '',
+                        email: userData.email || user.email,
+                        belt: userData.belt || '',
+                        address: userData.address || '',
+                        contactNumber: userData.contactNumber || '',
+                        dateOfBirth: userData.dateOfBirth || '',
+                        emailVerified: userData.emailVerified !== false,
+                        role: userData.role || ''
                     });
-                    setEmailEdit(userDoc.data().email || user.email);
-                    setEmailStatus(userDoc.data().emailVerified === false ? 'unverified' : 'verified');
+                    setEmailEdit(userData.email || user.email);
+                    setEmailStatus(userData.emailVerified === false ? 'unverified' : 'verified');
                 } else {
                     const defaultData = {
                         fullName: '',
@@ -59,9 +65,13 @@ export default function Profile() {
                         address: '',
                         contactNumber: '',
                         dateOfBirth: '',
-                        emailVerified: true
+                        emailVerified: true,
+                        role: ''
                     };
-                    await setDoc(doc(db, 'users', user.uid), defaultData);
+
+                    // Use service
+                    await userService.updateUserProfile(user.uid, defaultData);
+
                     setUserData(defaultData);
                     setEmailEdit(user.email);
                     setEmailStatus('verified');
@@ -84,13 +94,15 @@ export default function Profile() {
                 setEmailError('');
                 try {
                     await updateEmail(user, emailEdit);
-                    await updateDoc(doc(db, 'users', user.uid), {
+
+                    // Update with service
+                    await userService.updateUserProfile(user.uid, {
                         ...userData,
                         email: emailEdit,
-                        emailVerified: true,
-                        role: 'admin'
+                        emailVerified: true
                     });
-                    setUserData(prev => ({ ...prev, email: emailEdit, emailVerified: true, role: 'admin' }));
+
+                    setUserData(prev => ({ ...prev, email: emailEdit, emailVerified: true }));
                     setEmailStatus('verified');
                     setIsEditing(false);
                     return;
@@ -107,10 +119,12 @@ export default function Profile() {
             const updatedData = {
                 ...userData,
                 email: userData.email,
-                belt: userData.belt,
-                role: 'admin'
+                belt: userData.belt
             };
-            await setDoc(doc(db, 'users', user.uid), updatedData);
+
+            // Use service
+            await userService.updateUserProfile(user.uid, updatedData);
+
             setIsEditing(false);
         } catch (error) {
             setEmailError('Error saving user data: ' + (error.message || error));
