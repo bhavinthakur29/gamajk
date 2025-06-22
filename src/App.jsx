@@ -19,6 +19,7 @@ import AdminBranches from './features/admin/AdminBranches';
 import AdminInstructors from './features/admin/AdminInstructors';
 import AdminStudents from './features/admin/AdminStudents';
 import AdminProfile from './features/admin/AdminProfile';
+import InstructorStudentManagement from './features/students/InstructorStudentManagement';
 import { USER_ROLES } from './utils/constants';
 
 // Route guard for admin users
@@ -73,6 +74,7 @@ function AppContent() {
             >
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/students" element={<Students />} />
+              <Route path="/student-management" element={<InstructorStudentManagement />} />
               <Route path="/student/:studentId" element={<StudentDetail />} />
               <Route path="/edit-student/:studentId" element={<EditStudent />} />
               <Route path="/attendance" element={<Attendance />} />

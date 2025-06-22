@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
-import { Card, Button, Form, Alert, Table, Row, Col, Toast, ToastContainer } from 'react-bootstrap';
+import { Card, Button, Form, Alert, Table, Row, Col, Toast, ToastContainer, Tabs, Tab, Badge } from 'react-bootstrap';
 import { FaUserPlus, FaCheck, FaTimes } from 'react-icons/fa';
 
 const BELT_OPTIONS = [
@@ -84,6 +84,7 @@ export default function AdminStudents() {
             await addDoc(collection(db, 'students'), {
                 ...form,
                 batch: parseInt(form.batch, 10),
+                status: 'active',
                 createdAt: new Date().toISOString()
             });
             setToastMessage('Student Added Successfully ✅');
@@ -99,11 +100,25 @@ export default function AdminStudents() {
         }
     };
 
-    // Group students by branch
-    const studentsByBranch = branches.reduce((acc, branch) => {
-        acc[branch] = students.filter(s => s.branch === branch);
-        return acc;
-    }, {});
+    // Group students by status and branch
+    const organizeStudents = () => {
+        const activeStudents = students.filter(s => s.status !== 'derolled');
+        const derolledStudents = students.filter(s => s.status === 'derolled');
+
+        const activeByBranch = branches.reduce((acc, branch) => {
+            acc[branch] = activeStudents.filter(s => s.branch === branch);
+            return acc;
+        }, {});
+
+        return { activeByBranch, derolledStudents };
+    };
+
+    const getBeltColor = (belt) => {
+        const beltMap = { 'White': 'secondary', 'Yellow': 'warning', 'Yellow Stripe': 'warning', 'Green': 'success', 'Green Stripe': 'success', 'Blue': 'primary', 'Blue Stripe': 'primary', 'Red': 'danger', 'Red Stripe': 'danger', 'Black': 'dark', 'Black 1': 'dark', 'Black 2': 'dark', 'Black 3': 'dark', 'Black Stripe': 'dark' };
+        return beltMap[belt] || 'secondary';
+    };
+
+    const { activeByBranch, derolledStudents } = organizeStudents();
 
     const handleRowClick = (branch) => {
         setSelectedBranch(branch);
@@ -212,52 +227,70 @@ export default function AdminStudents() {
                 </Card.Body>
             </Card>
             <div className="mt-4">
-                {branches.map(branch => (
-                    <div key={branch} className="mb-5">
-                        <h5 className="fw-bold mb-3">{branch} Branch</h5>
-                        <div className="table-responsive">
-                            <Table striped bordered hover size="sm">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Email</th>
-                                        <th>Belt</th>
-                                        <th>Batch</th>
-                                        <th>Contact</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {studentsByBranch[branch] && studentsByBranch[branch].length > 0 ? (
-                                        studentsByBranch[branch].map(student => (
-                                            <tr key={student.id}>
-                                                <td>{student.name}</td>
-                                                <td>{student.email}</td>
-                                                <td>{student.belt}</td>
-                                                <td>{student.batch}</td>
-                                                <td>{student.contactNumber}</td>
-                                                <td>
-                                                    <Button
-                                                        as="a"
-                                                        href={`/admin/student/${student.id}`}
-                                                        variant="outline-primary"
-                                                        size="sm"
-                                                    >
-                                                        View Details
-                                                    </Button>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan={5} className="text-center text-muted">No students in this branch.</td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </Table>
-                        </div>
-                    </div>
-                ))}
+                <Tabs defaultActiveKey="active" className="mb-4">
+                    <Tab eventKey="active" title="Active Students">
+                        {branches.map(branch => (
+                            <div key={branch} className="mb-5">
+                                <h5 className="fw-bold mb-3">{branch} Branch <Badge bg="primary" className="ms-2">{activeByBranch[branch]?.length || 0} students</Badge></h5>
+                                <div className="table-responsive">
+                                    <Table striped bordered hover size="sm">
+                                        <thead>
+                                            <tr><th>Name</th><th>Email</th><th>Belt</th><th>Batch</th><th>Contact</th><th>Actions</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            {activeByBranch[branch] && activeByBranch[branch].length > 0 ? (
+                                                activeByBranch[branch].map(student => (
+                                                    <tr key={student.id}>
+                                                        <td>{student.name}</td>
+                                                        <td>{student.email}</td>
+                                                        <td><Badge bg={getBeltColor(student.belt)}>{student.belt}</Badge></td>
+                                                        <td>{student.batch}</td>
+                                                        <td>{student.contactNumber}</td>
+                                                        <td><Button as="a" href={`/admin/student/${student.id}`} variant="outline-primary" size="sm">View Details</Button></td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                <tr><td colSpan={6} className="text-center text-muted">No students in this branch.</td></tr>
+                                            )}
+                                        </tbody>
+                                    </Table>
+                                </div>
+                            </div>
+                        ))}
+                    </Tab>
+
+                    <Tab eventKey="derolled" title="Derolled Students">
+                        <Card className="shadow-sm">
+                            <Card.Body>
+                                <h5 className="fw-bold mb-3">Derolled Students <Badge bg="danger" className="ms-2">{derolledStudents.length} students</Badge></h5>
+                                {derolledStudents.length > 0 ? (
+                                    <div className="table-responsive">
+                                        <Table striped bordered hover size="sm">
+                                            <thead>
+                                                <tr><th>Name</th><th>Email</th><th>Belt</th><th>Ex-Branch</th><th>Ex-Batch</th><th>Contact</th><th>Actions</th></tr>
+                                            </thead>
+                                            <tbody>
+                                                {derolledStudents.map(student => (
+                                                    <tr key={student.id}>
+                                                        <td>{student.name}</td>
+                                                        <td>{student.email}</td>
+                                                        <td><Badge bg={getBeltColor(student.belt)}>{student.belt}</Badge></td>
+                                                        <td>{student.exBranch || student.branch || '-'}</td>
+                                                        <td>{student.exBatch || student.batch || '-'}</td>
+                                                        <td>{student.contactNumber || '-'}</td>
+                                                        <td><Button as="a" href={`/admin/student/${student.id}`} variant="outline-primary" size="sm">View Details</Button></td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </Table>
+                                    </div>
+                                ) : (
+                                    <p className="text-muted text-center">No derolled students found.</p>
+                                )}
+                            </Card.Body>
+                        </Card>
+                    </Tab>
+                </Tabs>
             </div>
             <ToastContainer position="bottom-center" className="mb-4">
                 <Toast bg={toastVariant} show={showToast} onClose={() => setShowToast(false)} delay={3000} autohide>

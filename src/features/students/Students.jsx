@@ -3,10 +3,11 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { Card, Button, Row, Col, Badge, Nav, Tab } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import { FaUserPlus, FaEye, FaUserTie, FaMapMarkerAlt, FaPhone } from 'react-icons/fa';
+import { FaUserPlus, FaEye, FaUserTie, FaMapMarkerAlt, FaPhone, FaUserCog } from 'react-icons/fa';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorDisplay from '../../components/common/ErrorDisplay';
 import { useAuth } from '../../contexts/AuthContext';
+import './Students.css';
 
 export default function Students() {
     const [students, setStudents] = useState([]);
@@ -44,6 +45,7 @@ export default function Students() {
             if (userRole === 'admin') {
                 studentsQuery = collection(db, 'students');
             } else {
+                // First, query by branch only to avoid needing a composite index
                 studentsQuery = query(
                     collection(db, 'students'),
                     where('branch', '==', userBranch)
@@ -51,10 +53,15 @@ export default function Students() {
             }
 
             const snapshot = await getDocs(studentsQuery);
-            const studentList = snapshot.docs.map(doc => ({
+            let studentList = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             }));
+
+            // If the user is an instructor, filter out derolled students on the client-side
+            if (userRole === 'instructor') {
+                studentList = studentList.filter(student => student.status !== 'derolled');
+            }
 
             setStudents(studentList);
         } catch (err) {
@@ -137,41 +144,42 @@ export default function Students() {
     };
 
     const renderStudentCard = (student) => (
-        <Col key={student.id} xs={12} sm={6} lg={4} xl={3}>
-            <Card className="h-100 shadow-sm border-0 student-card hover-effect">
-                <Card.Body className="d-flex flex-column">
-                    <div className="d-flex justify-content-between align-items-start mb-3">
-                        <div>
-                            <h5 className="mb-1 student-name">{student.name || `Student ${student.studentId}`}</h5>
-                            <p className="text-muted small mb-0">ID: {student.studentId}</p>
-                        </div>
-                        <Badge bg={getBeltColor(student.belt)}
-                            className="py-2 px-3 rounded-pill">
+        <Col key={student.id} xs={12} sm={6} md={4} lg={3}>
+            <Card className="student-card h-100">
+                <Card.Body className="d-flex flex-column text-center">
+                    <div className="mb-3">
+                        <Badge
+                            pill
+                            bg={getBeltColor(student.belt)}
+                            className="student-belt-badge"
+                        >
                             {student.belt || 'No Belt'}
                         </Badge>
+                        <h5 className="card-title mt-2 mb-0">{student.name}</h5>
+                        {student.studentId && (
+                            <p className="text-muted small mb-0">ID: {student.studentId}</p>
+                        )}
                     </div>
 
-                    <div className="student-details">
-                        <div className="d-flex align-items-center mb-2 text-muted">
-                            <FaMapMarkerAlt className="me-2" size={14} />
-                            <span className="small">{student.branch || 'Unknown Branch'}</span>
+                    <div className="student-info text-start">
+                        <div className="info-item">
+                            <FaMapMarkerAlt className="info-icon" />
+                            <span>{student.branch || 'N/A'}</span>
                         </div>
-
                         {student.contactNumber && (
-                            <div className="d-flex align-items-center mb-2 text-muted">
-                                <FaPhone className="me-2" size={14} />
-                                <span className="small">{student.contactNumber}</span>
+                            <div className="info-item">
+                                <FaPhone className="info-icon" />
+                                <span>{student.contactNumber}</span>
                             </div>
                         )}
                     </div>
 
-                    <div className="mt-auto pt-3">
+                    <div className="mt-auto">
                         <Link
                             to={userRole === 'admin' ? `/admin/student/${student.id}` : `/student/${student.id}`}
-                            className="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center gap-2 w-100"
+                            className="btn btn-primary btn-sm w-100"
                         >
-                            <FaEye size={14} />
-                            <span>View Details</span>
+                            <FaEye className="me-1" /> View Details
                         </Link>
                     </div>
                 </Card.Body>
@@ -194,13 +202,21 @@ export default function Students() {
         <div className="container-fluid px-0 py-4">
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
                 <h4 className="mb-3 mb-md-0"><strong>Students</strong></h4>
-                <Link to="/add-student">
-                    <Button variant="primary" className="d-flex align-items-center gap-2">
-                        <FaUserPlus />
-                        <span className="d-none d-md-inline">Add Student</span>
-                        <span className="d-inline d-md-none">Add</span>
-                    </Button>
-                </Link>
+                <div className="d-flex gap-2">
+                    <Link to="/student-management">
+                        <Button variant="outline-secondary" className="d-flex align-items-center gap-2">
+                            <FaUserCog />
+                            <span>Manage Students</span>
+                        </Button>
+                    </Link>
+                    <Link to="/add-student">
+                        <Button variant="primary" className="d-flex align-items-center gap-2">
+                            <FaUserPlus />
+                            <span className="d-none d-md-inline">Add Student</span>
+                            <span className="d-inline d-md-none">Add</span>
+                        </Button>
+                    </Link>
+                </div>
             </div>
 
             {students.length === 0 ? (

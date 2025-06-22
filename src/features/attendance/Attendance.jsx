@@ -67,6 +67,7 @@ export default function Attendance() {
             // For instructors, directly query only students from their branch
             let fetchedStudents = [];
             if (userRole === 'instructor') {
+                // First, query by branch only to avoid needing a composite index
                 const q = query(
                     collection(db, 'students'),
                     where('branch', '==', userBranch)
@@ -76,6 +77,8 @@ export default function Attendance() {
                     id: doc.id,
                     ...doc.data()
                 }));
+                // Then, filter out derolled students on the client-side
+                fetchedStudents = fetchedStudents.filter(student => student.status !== 'derolled');
             } else {
                 // For admin, get all students
                 const querySnapshot = await getDocs(collection(db, 'students'));
@@ -349,7 +352,13 @@ export default function Attendance() {
         return 'unmarked-row';
     };
 
-    const filteredStudents = students.filter(student => student.batch === parseInt(activeTab.replace('batch', '')));
+    const activeBatch = parseInt(activeTab.replace('batch', ''));
+
+    // Filter students by the active batch
+    const filteredStudents = students.filter(student => student.batch === activeBatch);
+
+    // Deduplicate students by ID to prevent rendering issues
+    const uniqueStudents = Array.from(new Map(filteredStudents.map(student => [student.id, student])).values());
 
     if (loading) {
         return (
@@ -412,7 +421,7 @@ export default function Attendance() {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredStudents.map(student => {
+                            {uniqueStudents.map(student => {
                                 const beltStyle = getBeltStyle(student.belt);
                                 const isPresent = attendance[student.id] === true;
                                 const isAbsent = attendance[student.id] === false;

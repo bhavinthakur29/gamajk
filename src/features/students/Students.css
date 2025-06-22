@@ -1,0 +1,47 @@
+.student-card {
+    border: none;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    background-color: #fff;
+}
+
+.student-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.student-belt-badge {
+    font-size: 0.8rem;
+    padding: 0.4em 0.8em;
+    font-weight: 600;
+}
+
+.card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.student-info {
+    margin-top: 1rem;
+    margin-bottom: 1.5rem;
+    padding-left: 1rem;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+}
+
+.info-icon {
+    margin-right: 0.75rem;
+    color: #0d6efd;
+}
+
+/* Add padding to the batch tab content to prevent shadow clipping */
+.student-branch-tabs+.tab-content .tab-pane .tab-content {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
