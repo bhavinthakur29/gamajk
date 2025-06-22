@@ -65,7 +65,7 @@ export default function Dashboard() {
         <Container className="py-5">
             <div className="dashboard-welcome mb-4">
                 <h3 className="dashboard-title">Instructor Dashboard</h3>
-                <p className="dashboard-subtitle">Welcome to GAMA Martial Arts Academy management portal</p>
+                <p className="dashboard-subtitle">Welcome to your student management portal</p>
             </div>
 
             <Row className="g-4 justify-content-center">
